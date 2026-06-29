@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
+import { isAdminUnlocked } from '../components/admin/AdminPasswordGate'
 import { useScenarioState } from '../hooks/useScenarioState'
 import { useAlgorithmLibrary } from '../hooks/useAlgorithmLibrary'
 import { usePanelManager, PanelId } from '../hooks/usePanelManager'
@@ -664,7 +665,7 @@ function PanelContent({
         />
       )
     case 'board':
-      return <TeachingBoard board={board} />
+      return <TeachingBoard board={board} isAdmin={isAdminUnlocked()} />
     case 'notes':
       return <TeachingNotes lastActionId={scenario.lastActionId} onClose={() => {}} />
     case 'drugs':

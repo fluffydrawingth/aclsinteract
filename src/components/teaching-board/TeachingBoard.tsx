@@ -9,17 +9,18 @@ interface PointerRipple {
 
 interface Props {
   board: ReturnType<typeof useTeachingBoard>
+  isAdmin?: boolean
 }
 
-export default function TeachingBoard({ board }: Props) {
+export default function TeachingBoard({ board, isAdmin = false }: Props) {
   const { slides, currentSlide, currentIndex, goNext, goPrev, goTo, addSlide, updateSlide, deleteSlide, moveSlide } = board
   const [fullscreen, setFullscreen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleUploadFiles = useCallback((files: FileList | null) => {
-    if (!files) return
+    if (!files || !isAdmin) return
     Array.from(files).forEach((file) => addSlide(file))
-  }, [addSlide])
+  }, [addSlide, isAdmin])
 
   const triggerUpload = () => {
     fileInputRef.current?.click()
@@ -40,14 +41,16 @@ export default function TeachingBoard({ board }: Props) {
   if (slides.length === 0) {
     return (
       <div className="h-full flex flex-col items-center justify-center gap-5 p-8">
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          multiple
-          className="hidden"
-          onChange={(e) => handleUploadFiles(e.target.files)}
-        />
+        {isAdmin && (
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={(e) => handleUploadFiles(e.target.files)}
+          />
+        )}
         <div className="w-20 h-20 rounded-3xl bg-slate-800 border border-slate-700 flex items-center justify-center">
           <svg className="w-9 h-9 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
@@ -56,18 +59,22 @@ export default function TeachingBoard({ board }: Props) {
         </div>
         <div className="text-center">
           <p className="text-white font-bold text-base">Teaching Board</p>
-          <p className="text-slate-400 text-sm mt-1">อัพโหลดสไลด์หรือรูปภาพสำหรับสอน</p>
-          <p className="text-slate-500 text-xs mt-0.5">รองรับ PNG, JPG, PDF screenshot</p>
+          <p className="text-slate-400 text-sm mt-1">
+            {isAdmin ? 'อัพโหลดสไลด์หรือรูปภาพสำหรับสอน' : 'ยังไม่มีสไลด์'}
+          </p>
+          {isAdmin && <p className="text-slate-500 text-xs mt-0.5">รองรับ PNG, JPG, PDF screenshot</p>}
         </div>
-        <button
-          onClick={triggerUpload}
-          className="flex items-center gap-2 px-5 py-3 rounded-xl bg-teal-500 hover:bg-teal-400 text-white font-bold text-sm transition-all hover:scale-[1.02] active:scale-100 shadow-lg shadow-teal-500/25"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          อัพโหลดรูปภาพ
-        </button>
+        {isAdmin && (
+          <button
+            onClick={triggerUpload}
+            className="flex items-center gap-2 px-5 py-3 rounded-xl bg-teal-500 hover:bg-teal-400 text-white font-bold text-sm transition-all hover:scale-[1.02] active:scale-100 shadow-lg shadow-teal-500/25"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            อัพโหลดรูปภาพ
+          </button>
+        )}
       </div>
     )
   }
@@ -85,17 +92,19 @@ export default function TeachingBoard({ board }: Props) {
 
       {/* ── Left: Slide List ─────────────────────────────────── */}
       <div className="w-24 flex-none bg-navy-950 border-r border-slate-800 flex flex-col overflow-hidden">
-        {/* Add button */}
-        <button
-          onClick={triggerUpload}
-          className="flex-none flex items-center justify-center gap-1 py-2.5 text-xs font-bold text-teal-400 hover:bg-teal-500/10 border-b border-slate-800 transition-colors"
-          title="อัพโหลดรูป"
-        >
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          Add
-        </button>
+        {/* Add button — admin only */}
+        {isAdmin && (
+          <button
+            onClick={triggerUpload}
+            className="flex-none flex items-center justify-center gap-1 py-2.5 text-xs font-bold text-teal-400 hover:bg-teal-500/10 border-b border-slate-800 transition-colors"
+            title="อัพโหลดรูป"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Add
+          </button>
+        )}
 
         {/* Thumbnails */}
         <div className="flex-1 overflow-y-auto py-1.5 space-y-1 px-1.5">
@@ -107,6 +116,7 @@ export default function TeachingBoard({ board }: Props) {
               isActive={idx === currentIndex}
               isFirst={idx === 0}
               isLast={idx === slides.length - 1}
+              isAdmin={isAdmin}
               onClick={() => goTo(idx)}
               onMoveUp={() => moveSlide(slide.id, 'up')}
               onMoveDown={() => moveSlide(slide.id, 'down')}
@@ -144,16 +154,18 @@ export default function TeachingBoard({ board }: Props) {
 
           <div className="flex-1" />
 
-          {/* Delete */}
-          <button
-            onClick={() => currentSlide && deleteSlide(currentSlide.id)}
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
-            title="ลบสไลด์นี้"
-          >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-          </button>
+          {/* Delete — admin only */}
+          {isAdmin && (
+            <button
+              onClick={() => currentSlide && deleteSlide(currentSlide.id)}
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+              title="ลบสไลด์นี้"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          )}
 
           {/* Fullscreen */}
           <button
@@ -170,22 +182,35 @@ export default function TeachingBoard({ board }: Props) {
         {/* Image area with pointer effect */}
         <SlideView slide={currentSlide} onUpload={triggerUpload} />
 
-        {/* Title + Notes editor */}
+        {/* Title + Notes — editable for admin, read-only for students */}
         {currentSlide && (
           <div className="flex-none border-t border-slate-800 p-3 space-y-2 bg-navy-950">
-            <input
-              value={currentSlide.title}
-              onChange={(e) => updateSlide(currentSlide.id, { title: e.target.value })}
-              placeholder="ชื่อสไลด์..."
-              className="w-full bg-transparent text-white font-bold text-sm border border-transparent hover:border-slate-700 focus:border-teal-500 rounded-lg px-2 py-1 focus:outline-none transition-colors placeholder-slate-600"
-            />
-            <textarea
-              value={currentSlide.note}
-              onChange={(e) => updateSlide(currentSlide.id, { note: e.target.value })}
-              placeholder="Speaker notes — จุดสำคัญที่ต้องพูดถึง..."
-              rows={2}
-              className="w-full bg-navy-900 text-slate-300 text-xs rounded-lg px-2 py-1.5 border border-slate-700 focus:border-teal-500 focus:outline-none resize-none placeholder-slate-600 transition-colors leading-relaxed"
-            />
+            {isAdmin ? (
+              <>
+                <input
+                  value={currentSlide.title}
+                  onChange={(e) => updateSlide(currentSlide.id, { title: e.target.value })}
+                  placeholder="ชื่อสไลด์..."
+                  className="w-full bg-transparent text-white font-bold text-sm border border-transparent hover:border-slate-700 focus:border-teal-500 rounded-lg px-2 py-1 focus:outline-none transition-colors placeholder-slate-600"
+                />
+                <textarea
+                  value={currentSlide.note}
+                  onChange={(e) => updateSlide(currentSlide.id, { note: e.target.value })}
+                  placeholder="Speaker notes — จุดสำคัญที่ต้องพูดถึง..."
+                  rows={2}
+                  className="w-full bg-navy-900 text-slate-300 text-xs rounded-lg px-2 py-1.5 border border-slate-700 focus:border-teal-500 focus:outline-none resize-none placeholder-slate-600 transition-colors leading-relaxed"
+                />
+              </>
+            ) : (
+              <>
+                {currentSlide.title && (
+                  <p className="text-white font-bold text-sm px-2 py-1">{currentSlide.title}</p>
+                )}
+                {currentSlide.note && (
+                  <p className="text-slate-300 text-xs px-2 py-1.5 leading-relaxed">{currentSlide.note}</p>
+                )}
+              </>
+            )}
           </div>
         )}
       </div>
@@ -311,6 +336,7 @@ function SlideThumb({
   isActive,
   isFirst,
   isLast,
+  isAdmin,
   onClick,
   onMoveUp,
   onMoveDown,
@@ -320,6 +346,7 @@ function SlideThumb({
   isActive: boolean
   isFirst: boolean
   isLast: boolean
+  isAdmin: boolean
   onClick: () => void
   onMoveUp: () => void
   onMoveDown: () => void
@@ -350,27 +377,29 @@ function SlideThumb({
           {index + 1}
         </span>
       </div>
-      {/* Reorder buttons (show on hover) */}
-      <div className="absolute top-1 right-1 flex flex-col gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-        {!isFirst && (
-          <button
-            onClick={(e) => { e.stopPropagation(); onMoveUp() }}
-            className="w-4 h-4 rounded bg-slate-800/90 text-slate-300 hover:text-white flex items-center justify-center text-[10px] transition-colors"
-            title="ขึ้น"
-          >
-            ↑
-          </button>
-        )}
-        {!isLast && (
-          <button
-            onClick={(e) => { e.stopPropagation(); onMoveDown() }}
-            className="w-4 h-4 rounded bg-slate-800/90 text-slate-300 hover:text-white flex items-center justify-center text-[10px] transition-colors"
-            title="ลง"
-          >
-            ↓
-          </button>
-        )}
-      </div>
+      {/* Reorder buttons — admin only */}
+      {isAdmin && (
+        <div className="absolute top-1 right-1 flex flex-col gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+          {!isFirst && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onMoveUp() }}
+              className="w-4 h-4 rounded bg-slate-800/90 text-slate-300 hover:text-white flex items-center justify-center text-[10px] transition-colors"
+              title="ขึ้น"
+            >
+              ↑
+            </button>
+          )}
+          {!isLast && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onMoveDown() }}
+              className="w-4 h-4 rounded bg-slate-800/90 text-slate-300 hover:text-white flex items-center justify-center text-[10px] transition-colors"
+              title="ลง"
+            >
+              ↓
+            </button>
+          )}
+        </div>
+      )}
     </div>
   )
 }
