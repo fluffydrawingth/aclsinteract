@@ -97,7 +97,7 @@ function Group({
               label={lbl}
               icon={icon}
               visible={visibleIds.has(id)}
-              hasImage={!!asset?.imageDataUrl}
+              hasImage={!!(asset?.storageUrl ?? asset?.imageDataUrl)}
               onToggle={() => onToggle(id)}
             />
           )

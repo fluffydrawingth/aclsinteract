@@ -17,7 +17,7 @@ interface Props {
 
 export default function ScenarioCanvas({ state, patientLabel, assets, visibleIds, events = [], cprElapsed = 0, epiElapsedSnapshot = null, scenarioStarted = false }: Props) {
   const sortedAssets = [...assets].sort((a, b) => a.zIndex - b.zIndex)
-  const hasImages = assets.some(a => a.imageDataUrl)
+  const hasImages = assets.some(a => a.storageUrl ?? a.imageDataUrl)
 
   return (
     <div className="relative w-full h-full overflow-hidden bg-navy-950">
