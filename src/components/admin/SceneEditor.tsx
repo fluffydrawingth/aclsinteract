@@ -578,8 +578,8 @@ function LayoutTab({ assets, onUpdate }: { assets: SceneAsset[]; onUpdate: (a: S
                 className="flex items-center gap-2 flex-1 min-w-0 text-left"
                 onClick={() => setSelectedId(a.id)}
               >
-                {a.imageDataUrl
-                  ? <img src={a.imageDataUrl} className="w-7 h-7 object-contain rounded bg-slate-800 flex-none" />
+                {(a.storageUrl ?? a.imageDataUrl)
+                  ? <img src={a.storageUrl ?? a.imageDataUrl} className="w-7 h-7 object-contain rounded bg-slate-800 flex-none" />
                   : <div className="w-7 h-7 rounded bg-slate-800 flex items-center justify-center flex-none text-slate-700 text-[10px]">?</div>
                 }
                 <span className="truncate">{a.name}</span>
@@ -690,8 +690,8 @@ function LayoutTab({ assets, onUpdate }: { assets: SceneAsset[]; onUpdate: (a: S
               }}
               onMouseDown={e => startDrag(e, asset, 'move')}
             >
-              {asset.imageDataUrl
-                ? <img src={asset.imageDataUrl} className="w-full h-full object-contain pointer-events-none" />
+              {(asset.storageUrl ?? asset.imageDataUrl)
+                ? <img src={asset.storageUrl ?? asset.imageDataUrl} className="w-full h-full object-contain pointer-events-none" />
                 : <div className="w-full h-full border border-dashed border-slate-700 rounded flex items-center justify-center">
                     <span className="text-slate-700 text-[9px] text-center px-1 leading-tight">{asset.name}</span>
                   </div>
