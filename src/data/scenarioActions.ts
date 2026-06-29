@@ -128,6 +128,11 @@ export const scenarioActions: ScenarioAction[] = [
     labelEn: 'Repeat Vital Signs',
     category: 'assessment',
     icon: '📋',
+    notesThai: {
+      title: 'วัด Vital Signs ซ้ำ',
+      keyPoints: ['BP, HR, SpO₂, RR — วัดซ้ำและบันทึก', 'เปรียบเทียบกับค่าก่อนหน้า', 'ประเมิน trend การเปลี่ยนแปลง'],
+      discussionQuestion: '',
+    },
     findings: [
       'BP, HR, SpO₂, RR — วัดซ้ำและบันทึก',
       'เปรียบเทียบกับค่าก่อนหน้า',
