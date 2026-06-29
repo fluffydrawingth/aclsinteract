@@ -18,13 +18,7 @@ export default function TeachingBoard({ board }: Props) {
 
   const handleUploadFiles = useCallback((files: FileList | null) => {
     if (!files) return
-    Array.from(files).forEach((file) => {
-      const reader = new FileReader()
-      reader.onload = (ev) => {
-        addSlide(ev.target?.result as string ?? null)
-      }
-      reader.readAsDataURL(file)
-    })
+    Array.from(files).forEach((file) => addSlide(file))
   }, [addSlide])
 
   const triggerUpload = () => {
@@ -235,10 +229,10 @@ function SlideView({ slide, onUpload }: { slide: Slide | undefined; onUpload: ()
       className="flex-1 bg-slate-950 flex items-center justify-center relative min-h-0 overflow-hidden cursor-crosshair"
       onClick={handleClick}
     >
-      {slide?.imageDataUrl ? (
+      {(slide?.storageUrl ?? slide?.imageDataUrl) ? (
         <img
-          src={slide.imageDataUrl}
-          alt={slide.title}
+          src={slide!.storageUrl ?? slide!.imageDataUrl!}
+          alt={slide!.title}
           className="max-w-full max-h-full object-contain pointer-events-none"
           draggable={false}
         />
@@ -341,8 +335,8 @@ function SlideThumb({
     >
       {/* Thumbnail image */}
       <div className="aspect-video bg-slate-900 flex items-center justify-center">
-        {slide.imageDataUrl ? (
-          <img src={slide.imageDataUrl} alt={slide.title} className="w-full h-full object-cover" />
+        {(slide.storageUrl ?? slide.imageDataUrl) ? (
+          <img src={slide.storageUrl ?? slide.imageDataUrl!} alt={slide.title} className="w-full h-full object-cover" />
         ) : (
           <svg className="w-5 h-5 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
@@ -472,9 +466,9 @@ function FullscreenView({
         className="flex-1 flex items-center justify-center p-6 min-h-0 relative cursor-crosshair"
         onClick={handleClick}
       >
-        {currentSlide.imageDataUrl ? (
+        {(currentSlide.storageUrl ?? currentSlide.imageDataUrl) ? (
           <img
-            src={currentSlide.imageDataUrl}
+            src={currentSlide.storageUrl ?? currentSlide.imageDataUrl!}
             alt={currentSlide.title}
             className="max-w-full max-h-full object-contain select-none pointer-events-none"
             draggable={false}
@@ -504,8 +498,8 @@ function FullscreenView({
                 idx === currentIndex ? 'border-teal-400 opacity-100' : 'border-white/10 opacity-50 hover:opacity-80'
               }`}
             >
-              {s.imageDataUrl ? (
-                <img src={s.imageDataUrl} alt={s.title} className="w-full h-full object-cover" />
+              {(s.storageUrl ?? s.imageDataUrl) ? (
+                <img src={s.storageUrl ?? s.imageDataUrl!} alt={s.title} className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full bg-slate-800 flex items-center justify-center">
                   <span className="text-slate-600 text-[10px]">{idx + 1}</span>

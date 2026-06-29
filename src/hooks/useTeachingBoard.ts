@@ -1,30 +1,52 @@
 import { useState, useCallback } from 'react'
 import { useLocalStorage } from './useLocalStorage'
+import { supabase, BUCKET } from '../lib/supabase'
 
 export type Slide = {
   id: string
   title: string
   note: string
   imageDataUrl: string | null
+  storageUrl?: string
+}
+
+async function uploadSlideToSupabase(slideId: string, file: File): Promise<string | null> {
+  if (!supabase) return null
+  const ext = file.name.split('.').pop() ?? 'jpg'
+  const path = `board-slides/${slideId}.${ext}`
+  const { error } = await supabase.storage.from(BUCKET).upload(path, file, { upsert: true })
+  if (error) { console.error('[TeachingBoard] upload error', error); return null }
+  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path)
+  return data.publicUrl
 }
 
 export function useTeachingBoard() {
   const [slides, setSlides] = useLocalStorage<Slide[]>('acls-board-slides', [])
   const [currentIndex, setCurrentIndex] = useState(0)
 
-  // safeIndex always stays in bounds
   const safeIndex = slides.length === 0 ? 0 : Math.min(currentIndex, slides.length - 1)
   const currentSlide = slides[safeIndex] ?? null
 
-  const addSlide = useCallback((imageDataUrl: string | null = null) => {
-    const newSlide: Slide = {
-      id: `slide-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      title: 'Slide',
-      note: '',
-      imageDataUrl,
+  const addSlide = useCallback(async (file: File) => {
+    const id = `slide-${Date.now()}-${Math.random().toString(36).slice(2)}`
+
+    // Optimistically add with base64 first so UI is instant
+    const reader = new FileReader()
+    reader.onload = async (ev) => {
+      const imageDataUrl = ev.target?.result as string ?? null
+      const newSlide: Slide = { id, title: 'Slide', note: '', imageDataUrl }
+      setSlides((prev) => [...prev, newSlide])
+      setCurrentIndex(9999)
+
+      // Then try to upload to Supabase and replace imageDataUrl with storageUrl
+      const storageUrl = await uploadSlideToSupabase(id, file)
+      if (storageUrl) {
+        setSlides((prev) => prev.map((s) =>
+          s.id === id ? { ...s, storageUrl, imageDataUrl: null } : s
+        ))
+      }
     }
-    setSlides((prev) => [...prev, newSlide])
-    setCurrentIndex(9999) // safeIndex clamps to slides.length - 1
+    reader.readAsDataURL(file)
   }, [setSlides])
 
   const updateSlide = useCallback((id: string, updates: Partial<Omit<Slide, 'id'>>) => {
@@ -48,17 +70,9 @@ export function useTeachingBoard() {
     })
   }, [setSlides])
 
-  const goNext = useCallback(() => {
-    setCurrentIndex((i) => i + 1) // safeIndex clamps
-  }, [])
-
-  const goPrev = useCallback(() => {
-    setCurrentIndex((i) => Math.max(0, i - 1))
-  }, [])
-
-  const goTo = useCallback((index: number) => {
-    setCurrentIndex(index)
-  }, [])
+  const goNext = useCallback(() => { setCurrentIndex((i) => i + 1) }, [])
+  const goPrev = useCallback(() => { setCurrentIndex((i) => Math.max(0, i - 1)) }, [])
+  const goTo = useCallback((index: number) => { setCurrentIndex(index) }, [])
 
   return {
     slides,
