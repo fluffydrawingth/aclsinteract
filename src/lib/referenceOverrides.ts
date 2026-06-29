@@ -1,4 +1,5 @@
 import { HtCause, allHtCauses } from '../data/htCauses'
+import { dataSave } from './supabaseDataSync'
 
 // ─── H's & T's overrides ────────────────────────────────────────────────────
 
@@ -15,6 +16,7 @@ export function loadHtOverrides(): Record<string, HtOverride> {
 
 export function saveHtOverrides(map: Record<string, HtOverride>): void {
   localStorage.setItem(HT_KEY, JSON.stringify(map))
+  dataSave(HT_KEY, map)
 }
 
 export function getAllHtCausesWithOverrides(): HtCause[] {
@@ -44,4 +46,5 @@ export function loadRoleOverrides(): Record<string, RoleOverride> {
 
 export function saveRoleOverrides(map: Record<string, RoleOverride>): void {
   localStorage.setItem(ROLES_KEY, JSON.stringify(map))
+  dataSave(ROLES_KEY, map)
 }

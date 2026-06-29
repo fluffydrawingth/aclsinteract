@@ -369,6 +369,8 @@ export const builtInScenarios: ScenarioDefinition[] = [
 
 const LS_KEY = 'acls-custom-scenarios'
 
+import { dataSave } from '../lib/supabaseDataSync'
+
 export function loadCustomScenarios(): ScenarioDefinition[] {
   try {
     return JSON.parse(localStorage.getItem(LS_KEY) ?? '[]')
@@ -379,6 +381,7 @@ export function loadCustomScenarios(): ScenarioDefinition[] {
 
 export function saveCustomScenarios(scenarios: ScenarioDefinition[]): void {
   localStorage.setItem(LS_KEY, JSON.stringify(scenarios))
+  dataSave(LS_KEY, scenarios)
 }
 
 export function getAllScenarios(): ScenarioDefinition[] {

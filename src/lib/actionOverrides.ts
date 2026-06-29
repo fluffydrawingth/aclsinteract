@@ -1,3 +1,5 @@
+import { dataSave } from './supabaseDataSync'
+
 const STORAGE_KEY = 'acls-action-overrides'
 
 export type ActionTeachingOverride = {
@@ -17,4 +19,5 @@ export function loadActionOverrides(): Record<string, ActionTeachingOverride> {
 
 export function saveActionOverrides(overrides: Record<string, ActionTeachingOverride>): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(overrides))
+  dataSave(STORAGE_KEY, overrides)
 }

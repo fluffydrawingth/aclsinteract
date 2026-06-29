@@ -2,6 +2,9 @@ import { useState, useCallback } from 'react'
 import { Algorithm, AlgorithmAnnotation } from '../types/algorithm'
 import { useLocalStorage } from './useLocalStorage'
 import { defaultAlgorithms } from '../data/algorithms'
+import { dataSave } from '../lib/supabaseDataSync'
+
+const ALGO_KEY = 'acls-algorithm-data'
 
 type StoredAlgorithmData = {
   imageDataUrl: string | null
@@ -11,7 +14,7 @@ type StoredAlgorithmData = {
 export function useAlgorithmLibrary() {
   const [activeAlgorithmId, setActiveAlgorithmId] = useState('cardiac-arrest')
   const [storedData, setStoredData] = useLocalStorage<Record<string, StoredAlgorithmData>>(
-    'acls-algorithm-data',
+    ALGO_KEY,
     {}
   )
 
@@ -24,43 +27,35 @@ export function useAlgorithmLibrary() {
   const activeAlgorithm = algorithms.find((a) => a.id === activeAlgorithmId) ?? algorithms[0]
 
   const uploadImage = useCallback((algorithmId: string, dataUrl: string) => {
-    setStoredData((prev) => ({
-      ...prev,
-      [algorithmId]: {
-        imageDataUrl: dataUrl,
-        annotations: prev[algorithmId]?.annotations ?? [],
-      },
-    }))
+    setStoredData((prev) => {
+      const next = { ...prev, [algorithmId]: { imageDataUrl: dataUrl, annotations: prev[algorithmId]?.annotations ?? [] } }
+      dataSave(ALGO_KEY, next)
+      return next
+    })
   }, [setStoredData])
 
   const removeImage = useCallback((algorithmId: string) => {
-    setStoredData((prev) => ({
-      ...prev,
-      [algorithmId]: {
-        imageDataUrl: null,
-        annotations: prev[algorithmId]?.annotations ?? [],
-      },
-    }))
+    setStoredData((prev) => {
+      const next = { ...prev, [algorithmId]: { imageDataUrl: null, annotations: prev[algorithmId]?.annotations ?? [] } }
+      dataSave(ALGO_KEY, next)
+      return next
+    })
   }, [setStoredData])
 
   const addAnnotation = useCallback((algorithmId: string, annotation: AlgorithmAnnotation) => {
-    setStoredData((prev) => ({
-      ...prev,
-      [algorithmId]: {
-        imageDataUrl: prev[algorithmId]?.imageDataUrl ?? null,
-        annotations: [...(prev[algorithmId]?.annotations ?? []), annotation],
-      },
-    }))
+    setStoredData((prev) => {
+      const next = { ...prev, [algorithmId]: { imageDataUrl: prev[algorithmId]?.imageDataUrl ?? null, annotations: [...(prev[algorithmId]?.annotations ?? []), annotation] } }
+      dataSave(ALGO_KEY, next)
+      return next
+    })
   }, [setStoredData])
 
   const removeAnnotation = useCallback((algorithmId: string, annotationId: string) => {
-    setStoredData((prev) => ({
-      ...prev,
-      [algorithmId]: {
-        imageDataUrl: prev[algorithmId]?.imageDataUrl ?? null,
-        annotations: (prev[algorithmId]?.annotations ?? []).filter((a) => a.id !== annotationId),
-      },
-    }))
+    setStoredData((prev) => {
+      const next = { ...prev, [algorithmId]: { imageDataUrl: prev[algorithmId]?.imageDataUrl ?? null, annotations: (prev[algorithmId]?.annotations ?? []).filter((a) => a.id !== annotationId) } }
+      dataSave(ALGO_KEY, next)
+      return next
+    })
   }, [setStoredData])
 
   return {

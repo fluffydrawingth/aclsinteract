@@ -3,6 +3,7 @@ import { useLocalStorage } from './useLocalStorage'
 import { Drug, allDrugs } from '../data/drugs'
 import { RhythmType } from '../types/rhythm'
 import { getImage, setImage, deleteImage, allImageKeys } from '../lib/imageStore'
+import { dataSave } from '../lib/supabaseDataSync'
 
 export type EcgImageEntry = {
   imageDataUrl: string
@@ -95,6 +96,7 @@ function saveEcgMeta(map: EcgImageMap) {
   }
   try {
     localStorage.setItem(ECG_META_KEY, JSON.stringify(meta))
+    dataSave(ECG_META_KEY, meta)
   } catch {
     console.error('[ECG] Failed to save ECG metadata.')
   }
@@ -106,10 +108,17 @@ export function useTeachingContent() {
   const [ecgImages, setEcgImages] = useState<EcgImageMap>(loadEcgImages)
 
   const updateDrug = useCallback((id: string, updates: Partial<Drug>) => {
-    setDrugs((prev) => prev.map((d) => (d.id === id ? { ...d, ...updates } : d)))
+    setDrugs((prev) => {
+      const next = prev.map((d) => (d.id === id ? { ...d, ...updates } : d))
+      dataSave('acls-content-drugs', next)
+      return next
+    })
   }, [setDrugs])
 
-  const resetDrugs = useCallback(() => setDrugs(allDrugs), [setDrugs])
+  const resetDrugs = useCallback(() => {
+    setDrugs(allDrugs)
+    dataSave('acls-content-drugs', allDrugs)
+  }, [setDrugs])
 
   const setEcgImage = useCallback((
     rhythm: RhythmType,

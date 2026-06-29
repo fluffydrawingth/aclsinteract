@@ -1,3 +1,5 @@
+import { dataSave } from './supabaseDataSync'
+
 const KEY = 'acls-cause-detail-overrides-v1'
 
 export interface CauseDetailOverride {
@@ -14,4 +16,5 @@ export function loadCauseDetailOverrides(): Record<string, CauseDetailOverride> 
 
 export function saveCauseDetailOverrides(map: Record<string, CauseDetailOverride>): void {
   localStorage.setItem(KEY, JSON.stringify(map))
+  dataSave(KEY, map)
 }

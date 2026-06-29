@@ -1,3 +1,5 @@
+import { dataSave } from './supabaseDataSync'
+
 const STORAGE_KEY = 'acls-scenario-assets'
 
 export type AssetId =
@@ -75,10 +77,12 @@ export function saveScenarioAsset(id: AssetId, imageDataUrl: string): void {
   const map = loadScenarioAssets()
   map[id] = { imageDataUrl }
   localStorage.setItem(STORAGE_KEY, JSON.stringify(map))
+  dataSave(STORAGE_KEY, map)
 }
 
 export function removeScenarioAsset(id: AssetId): void {
   const map = loadScenarioAssets()
   delete map[id]
   localStorage.setItem(STORAGE_KEY, JSON.stringify(map))
+  dataSave(STORAGE_KEY, map)
 }

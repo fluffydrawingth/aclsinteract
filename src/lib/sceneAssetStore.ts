@@ -1,6 +1,7 @@
 import { SceneAsset, ActionAssetMapping } from '../types/sceneAsset'
 import { getImage, setImage, deleteImage } from './imageStore'
 import { supabase, BUCKET } from './supabase'
+import { dataSave } from './supabaseDataSync'
 
 // Storage key — do NOT bump this to avoid wiping user-saved positions.
 // New default assets are merged in automatically by loadSceneAssets().
@@ -415,4 +416,5 @@ export function loadActionAssetMap(): ActionAssetMapping {
 
 export function saveActionAssetMap(map: ActionAssetMapping): void {
   localStorage.setItem(MAPPING_KEY, JSON.stringify(map))
+  dataSave(MAPPING_KEY, map)
 }
