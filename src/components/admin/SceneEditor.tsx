@@ -455,12 +455,15 @@ function LayoutTab({ assets, onUpdate }: { assets: SceneAsset[]; onUpdate: (a: S
   const [isDragging, setIsDragging] = useState(false)
   const [showSpecOverlay, setShowSpecOverlay] = useState(true)
   const [zoom, setZoom] = useState(1)
+  const [saved, setSaved] = useState(true)
+  // Local working copy — drag updates this only; Save pushes to parent
+  const [localAssets, setLocalAssets] = useState<SceneAsset[]>(assets)
   // Preview-only visibility (does NOT affect scenario canvas)
   const [previewVisible, setPreviewVisible] = useState<Set<string>>(() => new Set(assets.map(a => a.id)))
 
   const togglePreview = (id: string) =>
     setPreviewVisible(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s })
-  const showAll = () => setPreviewVisible(new Set(assets.map(a => a.id)))
+  const showAll = () => setPreviewVisible(new Set(localAssets.map(a => a.id)))
   const canvasRef = useRef<HTMLDivElement>(null)
   const drag = useRef<DragRef | null>(null)
 
@@ -468,8 +471,10 @@ function LayoutTab({ assets, onUpdate }: { assets: SceneAsset[]; onUpdate: (a: S
   const zoomIn  = () => setZoom(z => ZOOM_STEPS.find(s => s > z) ?? z)
   const zoomOut = () => setZoom(z => [...ZOOM_STEPS].reverse().find(s => s < z) ?? z)
 
-  const selected = assets.find(a => a.id === selectedId)
-  const sorted = [...assets].sort((a, b) => a.zIndex - b.zIndex)
+  const selected = localAssets.find(a => a.id === selectedId)
+  const sorted = [...localAssets].sort((a, b) => a.zIndex - b.zIndex)
+
+  const handleSave = () => { onUpdate(localAssets); setSaved(true) }
 
   const startDrag = (e: React.MouseEvent, asset: SceneAsset, type: DragRef['type']) => {
     e.preventDefault()
@@ -494,45 +499,50 @@ function LayoutTab({ assets, onUpdate }: { assets: SceneAsset[]; onUpdate: (a: S
     if (type === 'sw')   upd = { x: cl(origX + dx), w: cl(origW - dx, 2), h: cl(origH + dy, 2) }
     if (type === 'nw')   upd = { x: cl(origX + dx), y: cl(origY + dy), w: cl(origW - dx, 2), h: cl(origH - dy, 2) }
 
-    onUpdate(assets.map(a => a.id === assetId ? { ...a, ...upd } : a))
+    setLocalAssets(prev => prev.map(a => a.id === assetId ? { ...a, ...upd } : a))
+    setSaved(false)
   }
 
   const endDrag = () => { drag.current = null; setIsDragging(false) }
-  const setProp = (id: string, upd: Partial<SceneAsset>) => onUpdate(assets.map(a => a.id === id ? { ...a, ...upd } : a))
+  const setProp = (id: string, upd: Partial<SceneAsset>) => {
+    setLocalAssets(prev => prev.map(a => a.id === id ? { ...a, ...upd } : a))
+    setSaved(false)
+  }
 
   const bringForward = (asset: SceneAsset) => {
-    // Find the next higher z-index among other assets and swap
-    const others = assets.filter(a => a.id !== asset.id)
+    const others = localAssets.filter(a => a.id !== asset.id)
     const above = others.filter(a => a.zIndex > asset.zIndex).sort((a, b) => a.zIndex - b.zIndex)
     if (above.length === 0) return
     const target = above[0]
-    onUpdate(assets.map(a => {
+    setLocalAssets(prev => prev.map(a => {
       if (a.id === asset.id) return { ...a, zIndex: target.zIndex }
       if (a.id === target.id) return { ...a, zIndex: asset.zIndex }
       return a
     }))
+    setSaved(false)
   }
 
   const sendBackward = (asset: SceneAsset) => {
-    const others = assets.filter(a => a.id !== asset.id)
+    const others = localAssets.filter(a => a.id !== asset.id)
     const below = others.filter(a => a.zIndex < asset.zIndex).sort((a, b) => b.zIndex - a.zIndex)
     if (below.length === 0) return
     const target = below[0]
-    onUpdate(assets.map(a => {
+    setLocalAssets(prev => prev.map(a => {
       if (a.id === asset.id) return { ...a, zIndex: target.zIndex }
       if (a.id === target.id) return { ...a, zIndex: asset.zIndex }
       return a
     }))
+    setSaved(false)
   }
 
   const bringToFront = (asset: SceneAsset) => {
-    const maxZ = Math.max(...assets.map(a => a.zIndex))
+    const maxZ = Math.max(...localAssets.map(a => a.zIndex))
     if (asset.zIndex === maxZ) return
     setProp(asset.id, { zIndex: maxZ + 1 })
   }
 
   const sendToBack = (asset: SceneAsset) => {
-    const minZ = Math.min(...assets.map(a => a.zIndex))
+    const minZ = Math.min(...localAssets.map(a => a.zIndex))
     if (asset.zIndex === minZ) return
     setProp(asset.id, { zIndex: Math.max(0, minZ - 1) })
   }
@@ -540,7 +550,7 @@ function LayoutTab({ assets, onUpdate }: { assets: SceneAsset[]; onUpdate: (a: S
   const applyRecommendedSize = (asset: SceneAsset) => {
     const spec = ASSET_SPECS[asset.id]
     if (!spec) return
-    onUpdate(assets.map(a => a.id === asset.id ? { ...a, w: specW(spec), h: specH(spec) } : a))
+    setProp(asset.id, { w: specW(spec), h: specH(spec) })
   }
 
   return (
@@ -555,8 +565,20 @@ function LayoutTab({ assets, onUpdate }: { assets: SceneAsset[]; onUpdate: (a: S
             className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-400 hover:text-white hover:border-slate-500 transition-colors"
           >Show All</button>
         </div>
+        {/* Save button */}
+        <button
+          onClick={handleSave}
+          disabled={saved}
+          className={`w-full py-1.5 rounded-lg text-xs font-bold transition-all ${
+            saved
+              ? 'bg-slate-800 text-slate-600 cursor-default border border-slate-800'
+              : 'bg-teal-500 hover:bg-teal-400 text-white border border-teal-400 shadow-lg shadow-teal-500/20'
+          }`}
+        >
+          {saved ? 'Saved ✓' : 'Save Layout'}
+        </button>
         <div className="space-y-1 overflow-y-auto flex-1">
-        {assets.map(a => {
+        {localAssets.map(a => {
           const visible = previewVisible.has(a.id)
           return (
             <div
@@ -642,7 +664,7 @@ function LayoutTab({ assets, onUpdate }: { assets: SceneAsset[]; onUpdate: (a: S
           onClick={(e) => { if (e.target === canvasRef.current) setSelectedId(null) }}
         >
           {/* Recommended spec bounding boxes (shown behind assets) */}
-          {showSpecOverlay && assets.filter(a => previewVisible.has(a.id)).map(asset => {
+          {showSpecOverlay && localAssets.filter(a => previewVisible.has(a.id)).map(asset => {
             const spec = ASSET_SPECS[asset.id]
             if (!spec) return null
             const sw = specW(spec)
