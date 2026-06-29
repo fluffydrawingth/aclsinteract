@@ -20,6 +20,15 @@ async function uploadSlideToSupabase(slideId: string, file: File): Promise<strin
   return data.publicUrl
 }
 
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = (ev) => resolve(ev.target?.result as string)
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
+
 export function useTeachingBoard() {
   const [slides, setSlides] = useLocalStorage<Slide[]>('acls-board-slides', [])
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -30,23 +39,21 @@ export function useTeachingBoard() {
   const addSlide = useCallback(async (file: File) => {
     const id = `slide-${Date.now()}-${Math.random().toString(36).slice(2)}`
 
-    // Optimistically add with base64 first so UI is instant
-    const reader = new FileReader()
-    reader.onload = async (ev) => {
-      const imageDataUrl = ev.target?.result as string ?? null
-      const newSlide: Slide = { id, title: 'Slide', note: '', imageDataUrl }
-      setSlides((prev) => [...prev, newSlide])
-      setCurrentIndex(9999)
+    // Read base64 and upload in parallel
+    const [imageDataUrl, storageUrl] = await Promise.all([
+      readFileAsDataUrl(file),
+      uploadSlideToSupabase(id, file),
+    ])
 
-      // Then try to upload to Supabase and replace imageDataUrl with storageUrl
-      const storageUrl = await uploadSlideToSupabase(id, file)
-      if (storageUrl) {
-        setSlides((prev) => prev.map((s) =>
-          s.id === id ? { ...s, storageUrl, imageDataUrl: null } : s
-        ))
-      }
+    const newSlide: Slide = {
+      id,
+      title: 'Slide',
+      note: '',
+      imageDataUrl: storageUrl ? null : imageDataUrl,
+      storageUrl: storageUrl ?? undefined,
     }
-    reader.readAsDataURL(file)
+    setSlides((prev) => [...prev, newSlide])
+    setCurrentIndex(9999)
   }, [setSlides])
 
   const updateSlide = useCallback((id: string, updates: Partial<Omit<Slide, 'id'>>) => {
