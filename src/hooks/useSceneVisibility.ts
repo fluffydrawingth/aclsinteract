@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { SceneAsset, ActionAssetMapping } from '../types/sceneAsset'
-import { loadSceneAssets, loadActionAssetMap } from '../lib/sceneAssetStore'
+import { loadSceneAssets, loadActionAssetMap, loadSceneAssetsIndex, DEFAULT_SCENE_ASSETS } from '../lib/sceneAssetStore'
+import { getImage } from '../lib/imageStore'
 
 export function useSceneVisibility() {
   const [assets, setAssets] = useState<SceneAsset[]>([])
@@ -9,10 +10,26 @@ export function useSceneVisibility() {
 
   // Load assets + mapping; seed visible from defaultVisible
   useEffect(() => {
-    const a = loadSceneAssets()
+    const local = loadSceneAssets()
     mappingRef.current = loadActionAssetMap()
-    setAssets(a)
-    setVisibleIds(new Set(a.filter(x => x.defaultVisible).map(x => x.id)))
+    setAssets(local)
+    setVisibleIds(new Set(local.filter(x => x.defaultVisible).map(x => x.id)))
+
+    // Overlay with Supabase index for cross-device sync
+    loadSceneAssetsIndex().then(remote => {
+      if (!remote) return
+      const merged = remote.map(r => ({
+        ...r,
+        imageDataUrl: r.storageUrl ? undefined : getImage(`scene-asset::${r.id}`),
+      }))
+      const remoteIds = new Set(merged.map(a => a.id))
+      const missing = DEFAULT_SCENE_ASSETS
+        .filter(d => !remoteIds.has(d.id))
+        .map(({ imageDataUrl: _, ...rest }) => ({ ...rest, imageDataUrl: undefined as string | undefined }))
+      const final = [...merged, ...missing]
+      setAssets(final)
+      setVisibleIds(new Set(final.filter(x => x.defaultVisible).map(x => x.id)))
+    })
   }, [])
 
   // Re-load when admin changes assets

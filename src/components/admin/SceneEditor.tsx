@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { SceneAsset, ActionAssetMapping, ASSET_CATEGORIES, AssetCategory } from '../../types/sceneAsset'
-import { loadSceneAssets, saveSceneAssets, loadActionAssetMap, saveActionAssetMap, DEFAULT_SCENE_ASSETS, DEFAULT_ACTION_MAPPING } from '../../lib/sceneAssetStore'
+import { loadSceneAssets, saveSceneAssets, saveSceneAssetsIndex, loadActionAssetMap, saveActionAssetMap, DEFAULT_SCENE_ASSETS, DEFAULT_ACTION_MAPPING } from '../../lib/sceneAssetStore'
 import { ASSET_SPECS, AssetSpec, specW, specH } from '../../data/assetSpecs'
 import { scenarioActions } from '../../data/scenarioActions'
 import { isSupabaseEnabled } from '../../lib/supabase'
@@ -15,6 +15,7 @@ export default function SceneEditor() {
 
   const persist = (nextAssets: SceneAsset[], nextMapping?: ActionAssetMapping) => {
     saveSceneAssets(nextAssets)
+    saveSceneAssetsIndex(nextAssets)
     if (nextMapping) saveActionAssetMap(nextMapping)
     window.dispatchEvent(new CustomEvent('acls-assets-updated'))
   }

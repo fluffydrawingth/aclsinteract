@@ -1,5 +1,6 @@
 import { SceneAsset, ActionAssetMapping } from '../types/sceneAsset'
 import { getImage, setImage, deleteImage } from './imageStore'
+import { supabase, BUCKET } from './supabase'
 
 // Storage key — do NOT bump this to avoid wiping user-saved positions.
 // New default assets are merged in automatically by loadSceneAssets().
@@ -316,15 +317,38 @@ export const DEFAULT_ACTION_MAPPING: ActionAssetMapping = {
   'rosc':         { show: [{ id: 'rosc-overlay' }], hide: ['cpr-hands', 'shock-flash'] },
 }
 
+// Metadata stored in localStorage — everything except the raw image bytes.
+// storageUrl is included here so cross-device loads pick up the Supabase URL.
+type AssetMeta = Omit<SceneAsset, 'imageDataUrl'>
+
+// ─── Supabase index sync ──────────────────────────────────────────────────────
+
+const INDEX_PATH = 'scene-assets-index/index.json'
+
+export async function saveSceneAssetsIndex(assets: SceneAsset[]): Promise<void> {
+  if (!supabase) return
+  const meta = assets.map(({ imageDataUrl: _, ...rest }) => rest)
+  const blob = new Blob([JSON.stringify(meta)], { type: 'application/json' })
+  await supabase.storage.from(BUCKET).upload(INDEX_PATH, blob, { upsert: true, contentType: 'application/json' })
+}
+
+export async function loadSceneAssetsIndex(): Promise<AssetMeta[] | null> {
+  if (!supabase) return null
+  try {
+    const { data } = supabase.storage.from(BUCKET).getPublicUrl(INDEX_PATH)
+    const res = await fetch(`${data.publicUrl}?t=${Date.now()}`)
+    if (!res.ok) return null
+    return await res.json() as AssetMeta[]
+  } catch {
+    return null
+  }
+}
+
 // ─── Image key helpers ────────────────────────────────────────────────────────
 
 const assetImgKey = (id: string) => `scene-asset::${id}`
 
 // ─── Load / Save ─────────────────────────────────────────────────────────────
-
-// Metadata stored in localStorage — everything except the raw image bytes.
-// storageUrl is included here so cross-device loads pick up the Supabase URL.
-type AssetMeta = Omit<SceneAsset, 'imageDataUrl'>
 
 export function loadSceneAssets(): SceneAsset[] {
   let meta: AssetMeta[]
